@@ -4,6 +4,11 @@ A procedural 3D tunnel runner. It is built on pure logic, without textures or au
 
 It is inspired by classic Atari aesthetics and SpeedX 3D.
 
+## 🚀 Play & Download
+
+- **Play in Browser / Get APK**: [Tunnel-Z on Itch.io](https://lek-vob.itch.io/tunnel-z) 
+- **Web Mirror**: [Play on GitHub Pages](hhttps://mitchmailey.github.io/Tunnel-Z/web/)
+
 ## 🚀 Key Features
 
 -   **Zero Asset Design**: The entire game is generated via code in real-time. The visual world consists of 24 dynamic stripes and procedural geometry.
