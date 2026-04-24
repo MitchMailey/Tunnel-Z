@@ -34,7 +34,7 @@ It is inspired by classic Atari aesthetics and SpeedX 3D.
 
 -   **Engine**: [Three.js](https://threejs.org) (Vanilla JavaScript).
 -   **Audio**: Custom synth engine using Web Audio API.
--   **Platform**: Cross-platform HTML5. Built for Android using [Capitator](https://capacitorjs.com).
+-   **Platform**: Cross-platform HTML5. Built for Android using [Capacitor](https://capacitorjs.com).
 
 ## 💎 Credits
 
