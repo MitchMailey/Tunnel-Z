@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 
+      TUNNEL-Z (v14.16) - STABLE + SHOT SFX
+      ----------------------------------------------
+      Programming & Synth: Gemini (Google AI)
+      Design: lek vob & Gemini (Google AI)
+      License: CC BY-NC-SA 4.0
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tunnel-Z</title>
+    <style>
+        body { margin: 0; overflow: hidden; padding: 0; width: 100%; height: 100%; background: #000; font-family: 'Courier New', Courier, monospace; color: #fff; touch-action: none; -webkit-user-select: none; user-select: none; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);}
+        canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+        #ui-layer { position: absolute; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+        #score { position: absolute; top: 20px; left: 20px; color: #0f0; font-size: 84px; font-weight: bold; text-shadow: 0 0 20px #0f0; }
+        #bottom-center-ui { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); }
+        #speed { color: #0af; font-size: 54px; font-weight: bold; text-shadow: 0 0 15px #0af; }
+        #ammo-container { position: absolute; top: 35px; right: 40px; display: flex; flex-direction: row-reverse; gap: 12px; height: 60px; align-items: flex-start; }
+        .shell { width: 20px; height: 50px; background: #8B4513; border: 2px solid #fff; border-top: 10px solid #D4AF37; box-shadow: 0 0 10px rgba(139, 69, 19, 0.5); }
+        #turb-ui, #speedy-ui { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); color: rgba(255, 255, 255, 0.5); font-size: 50px; font-weight: bold; text-align: center; text-shadow: 0 0 20px rgba(255, 255, 255, 0.8); display: none; letter-spacing: 5px; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; pointer-events: auto; }
+        #logo { font-size: 80px; letter-spacing: 15px; animation: blink 2s infinite; text-shadow: 0 0 20px #fff; margin-bottom: 30px; }
+        .btn { background: none; border: 2px solid #fff; color: #fff; padding: 8px 40px; font-size: 22px; cursor: pointer; margin: 8px; font-family: inherit; transition: 0.3s; width: 320px; text-align: center; }
+        .btn:hover { background: #fff; color: #000; box-shadow: 0 0 20px #fff; }
+        #how-to-play-box { display: none; border: 4px solid #fff; padding: 40px; background: #000; text-align: center; max-width: 70%; box-shadow: 0 0 30px rgba(255,255,255,0.2); flex-direction: column; align-items: center; }
+        #inst-text { font-size: 28px; line-height: 1.6; margin-bottom: 30px; }
+        #info-text { width: 90%; max-width: 1100px; text-align: center; font-size: 16px; line-height: 1.2; color: #aaa; margin: 5px 0 30px 0; }
+        .white { color: #fff; }
+        #highscore-info { text-align: center; margin: 30px 0; }
+        #best-score { font-size: 72px; color: #0f0; text-shadow: 0 0 20px #0f0; display: block; }
+        #best-avg-spd { font-size: 32px; color: #0af; opacity: 0.8; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="score">0</div>
+        <div id="ammo-container"></div>
+        <div id="bottom-center-ui"><div id="speed">SPD: 1.0</div></div>
+        <div id="turb-ui">TURBULENCE IN 3</div>
+        <div id="speedy-ui">HOLD ON THERE, SPEEDY!</div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <div id="logo">TUNNEL-Z</div>
+        <button class="btn" onpointerdown="event.stopPropagation(); prepareGame()">START FLIGHT</button>
+        <button id="music-btn" class="btn" onpointerdown="event.stopPropagation(); toggleMusic()">MUSIC: OFF</button>
+        <button class="btn" onpointerdown="event.stopPropagation(); showHighscore()">RECORD</button>
+        <button class="btn" onpointerdown="event.stopPropagation(); showAbout()">ABOUT</button>
+    </div>
+
+    <div id="instruction-screen" class="overlay" style="display:none">
+        <div id="how-to-play-box">
+            <div id="inst-text"></div>
+            <button class="btn" style="width: 200px;" onpointerdown="event.stopPropagation(); startGame()">CONTINUE</button>
+        </div>
+    </div>
+
+    <div id="highscore-screen" class="overlay" style="display:none">
+        <h1>PERSONAL BEST</h1>
+        <div id="highscore-info">
+            <span id="best-score">0</span>
+            <span id="best-avg-spd">AVG SPEED: 0.00</span>
+        </div>
+        <button class="btn" onpointerdown="event.stopPropagation(); closeOverlay('highscore-screen')">BACK</button>
+    </div>
+
+    <div id="about-screen" class="overlay" style="display:none">
+        <h1>ABOUT TUNNEL-Z</h1>
+        <div id="info-text">
+            Programming & Synth: <span class="white">Gemini (Google AI)</span><br>
+            Design by: <span class="white">lek vob & Gemini (Google AI)</span><br><br>
+            Powered by: <span class="white">Three.js Engine</span><br>
+            License: <span class="white">CC BY-NC-SA 4.0</span><br><br>
+            <span style="color:#f44">Strictly Non-Commercial.</span>
+        </div>
+        <button class="btn" onpointerdown="event.stopPropagation(); closeOverlay('about-screen')">BACK</button>
+    </div>
+
+    <script src="three.min.js"></script>
+
+    <script>
+        const TUNNEL_RADIUS = 10, LINE_COUNT = 24;
+        let isStarted = false, isDead = false, speed = 1.0;
+        const keys = { left: false, right: false };
+
+        // --- AUDIO ENGINE ---
+        let audioCtx = null, musicEnabled = false, nextNoteTime = 0, step = 0;
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); ticker(); }
+        function toggleMusic() { musicEnabled = !musicEnabled; document.getElementById('music-btn').innerText = "MUSIC: " + (musicEnabled ? "ON" : "OFF"); if (musicEnabled) initAudio(); }
+        
+        function sfxShot() {
+            if (!audioCtx) return;
+            const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            o.type = 'square'; o.frequency.setValueAtTime(800, audioCtx.currentTime);
+            o.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+            g.gain.setValueAtTime(0.04, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function sfxCrash() {
+            if (!audioCtx) return;
+            const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            o.type = 'sawtooth'; o.frequency.setValueAtTime(120, audioCtx.currentTime);
+            o.frequency.linearRampToValueAtTime(10, audioCtx.currentTime + 0.6);
+            g.gain.setValueAtTime(0.3, audioCtx.currentTime); g.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+            o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + 0.6);
+        }
+
+        function ticker() {
+            if (!audioCtx) return;
+            const bpm = 115 + (speed * 12);
+            const secondsPerStep = 60 / bpm / 4; 
+            while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                if (musicEnabled && !isDead) playMusicStep(step, nextNoteTime);
+                nextNoteTime += secondsPerStep; step = (step + 1) % 64; 
+            }
+            setTimeout(ticker, 20);
+        }
+
+        function playMusicStep(s, time) {
+            const scale = [261.63, 311.13, 349.23, 392.00, 466.16, 523.25];
+            if (s % 8 === 0 || s % 8 === 3 || s % 8 === 5) {
+                const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                o.type = 'sine'; o.frequency.setValueAtTime(65.41, time);
+                g.gain.setValueAtTime(0.08, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+                o.connect(g); g.connect(audioCtx.destination); o.start(time); o.stop(time + 0.5);
+            }
+            if (s % 16 === 0) {
+                [0, 7, 12].forEach(interval => {
+                    const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                    o.type = 'sine'; o.frequency.value = 130.81 * Math.pow(2, interval/12);
+                    g.gain.setValueAtTime(0.02, time); g.gain.linearRampToValueAtTime(0, time + 2.5);
+                    o.connect(g); g.connect(audioCtx.destination); o.start(time); o.stop(time + 2.5);
+                });
+            }
+            if (s % 2 === 0) {
+                const note = scale[(s + Math.floor(s/7)) % scale.length];
+                const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                o.type = 'sine'; o.frequency.setValueAtTime(note * 2, time);
+                g.gain.setValueAtTime(0.012, time); g.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+                o.connect(g); g.connect(audioCtx.destination); o.start(time); o.stop(time + 0.2);
+            }
+        }
+
+        // --- LOGIC ---
+        function prepareGame() {
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const textEl = document.getElementById('inst-text');
+            if (isAndroid) textEl.innerText = "Touch screen left-right to steer,\ntap both sides to shoot";
+            else textEl.innerText = "Use arrow keys to steer,\nSpace to shoot";
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('instruction-screen').style.display = 'flex';
+            document.getElementById('how-to-play-box').style.display = 'flex';
+            if (musicEnabled) initAudio();
+        }
+
+        function startGame() { if (isStarted) return; isStarted = true; document.getElementById('instruction-screen').style.display = 'none'; }
+        function showHighscore() {
+            const data = JSON.parse(localStorage.getItem('tunnelz_pb_data') || '{"score":0, "avg":0}');
+            document.getElementById('best-score').innerText = Math.floor(data.score);
+            document.getElementById('best-avg-spd').innerText = "AVG SPEED: " + data.avg;
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('highscore-screen').style.display = 'flex';
+        }
+        function showAbout() { document.getElementById('start-screen').style.display = 'none'; document.getElementById('about-screen').style.display = 'flex'; }
+        function closeOverlay(id) { document.getElementById(id).style.display = 'none'; document.getElementById('start-screen').style.display = 'flex'; }
+
+        window.onload = () => { if (typeof THREE !== 'undefined') startTunnelZ(); };
+
+        function startTunnelZ() {
+            const renderer = new THREE.WebGLRenderer({ antialias: true, precision: "highp" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio * 0.75); 
+            document.body.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x001133, 0.007);
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const cameraBasePos = new THREE.Vector3(0, -TUNNEL_RADIUS + 1.5, 0);
+            camera.position.copy(cameraBasePos);
+
+            const worldGroup = new THREE.Group(); scene.add(worldGroup);
+
+            const canvas = document.createElement('canvas'); canvas.width = 128; canvas.height = 128;
+            const c = canvas.getContext('2d');
+            c.fillStyle = '#002266'; c.fillRect(0, 0, 128, 128); 
+            c.fillStyle = '#0044aa'; c.fillRect(64, 0, 64, 128); 
+            c.fillStyle = '#ffffff';
+            c.fillRect(0, 0, 2, 128); c.fillRect(64, 0, 2, 128); c.fillRect(0, 0, 128, 2); 
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(LINE_COUNT / 2, 40); 
+
+            const tunnel = new THREE.Mesh(new THREE.CylinderGeometry(TUNNEL_RADIUS, TUNNEL_RADIUS, 2000, 48, 1, true), new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide }));
+            tunnel.rotation.x = Math.PI / 2; worldGroup.add(tunnel);
+
+            const obstacles = new THREE.Group(), bullets = new THREE.Group();
+            worldGroup.add(obstacles); worldGroup.add(bullets);
+
+            let score = 0, ammo = 0, rotationVelocity = 0, shakePower = 0, shakeTimer = 0, driftVelocity = 0, turbActive = false, totalSpeedSum = 0, frameCount = 0;
+
+            window.onkeydown = (e) => { 
+                if (e.code === 'Space') { if(!isStarted && document.getElementById('instruction-screen').style.display === 'flex') startGame(); else if(isStarted) fire(); }
+                if (e.code === 'ArrowLeft') keys.left = true; if (e.code === 'ArrowRight') keys.right = true;
+            };
+            window.onkeyup = (e) => { if (e.code === 'ArrowLeft') keys.left = false; if (e.code === 'ArrowRight') keys.right = false; };
+            
+            window.addEventListener('touchstart', (e) => {
+                if (!isStarted) return;
+                e.preventDefault();
+                const touches = e.touches;
+                if (touches.length > 1) { keys.left = false; keys.right = false; fire(); }
+                else {
+                    const touchX = touches[0].clientX;
+                    if (touchX < window.innerWidth / 2) { keys.left = true; keys.right = false; }
+                    else { keys.right = true; keys.left = false; }
+                }
+            }, {passive: false});
+
+            window.addEventListener('touchend', (e) => {
+                if (e.touches.length === 0) { keys.left = false; keys.right = false; }
+                else if (e.touches.length === 1) {
+                    const touchX = e.touches[0].clientX;
+                    if (touchX < window.innerWidth / 2) { keys.left = true; keys.right = false; }
+                    else { keys.right = true; keys.left = false; }
+                }
+            }, {passive: false});
+
+            function spawn() {
+                if (Math.random() > 0.1) return;
+                let type = 'enemy'; const rand = Math.random();
+                if (rand < 0.05) type = 'slow'; else if (rand < 0.10) type = 'ammo'; else if (rand < 0.13) type = 'mine'; 
+                const h = (type === 'enemy') ? 4 : 2;
+                const geom = (type === 'mine') ? new THREE.SphereGeometry(1.5, 16, 16) : new THREE.BoxGeometry(2, h, type === 'enemy' ? 8 : 4);
+                let color = (type==='enemy')?0xff0000 : (type==='slow'?0x00aa00 : (type==='ammo'?0xffff00 : 0xaa00ff));
+                const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ color: color }));
+                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geom), new THREE.LineBasicMaterial({ color: 0xffffff })));
+                const angle = (Math.floor(Math.random() * LINE_COUNT) / LINE_COUNT) * Math.PI * 2;
+                mesh.position.set(Math.cos(angle) * (TUNNEL_RADIUS - (type === 'mine' ? 0.5 : h/2)), Math.sin(angle) * (TUNNEL_RADIUS - (type === 'mine' ? 0.5 : h/2)), -900);
+                mesh.rotation.z = angle + Math.PI / 2;
+                mesh.userData = { angle: angle, type: type };
+                obstacles.add(mesh);
+            }
+
+            function fire() {
+                if (ammo <= 0 || !isStarted) return;
+                ammo--; updateUI(); sfxShot();
+                shakePower = 0.15; shakeTimer = 5;
+                const ball = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), new THREE.MeshBasicMaterial({ color: 0xe0ffff }));
+                ball.add(new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff })));
+                const fireAngle = (-worldGroup.rotation.z - Math.PI / 2);
+                ball.position.set(Math.cos(fireAngle) * (TUNNEL_RADIUS - 1.5), Math.sin(fireAngle) * (TUNNEL_RADIUS - 1.5), 0);
+                ball.userData = { angle: fireAngle }; bullets.add(ball);
+            }
+
+            function updateUI() {
+                document.getElementById('score').innerText = Math.floor(score);
+                document.getElementById('speed').innerText = "SPD: " + speed.toFixed(1);
+                const container = document.getElementById('ammo-container'); container.innerHTML = '';
+                for(let i = 0; i < ammo; i++) {
+                    const shell = document.createElement('div'); shell.className = 'shell';
+                    container.appendChild(shell);
+                }
+            }
+
+            function animate() {
+                if (isDead) return;
+                requestAnimationFrame(animate);
+                if (!isStarted) { renderer.render(scene, camera); return; }
+                totalSpeedSum += speed; frameCount++;
+                spawn();
+                if (speed >= 4.0) { speed = 1.5; updateUI(); }
+                if (!turbActive && Math.random() < 0.00015) {
+                    turbActive = true;
+                    const el = document.getElementById('turb-ui'); el.style.display = 'block'; el.innerText = "TURBULENCE IN 3";
+                    setTimeout(() => el.innerText = "TURBULENCE IN 2", 1000);
+                    setTimeout(() => el.innerText = "TURBULENCE IN 1", 2000);
+                    setTimeout(() => {
+                        el.innerText = "TURBULENCE ACTIVE";
+                        shakePower = 0.25; shakeTimer = 600; driftVelocity = (Math.random()-0.5)*0.003;
+                        setTimeout(() => { el.style.display = 'none'; turbActive = false; }, 10000);
+                    }, 3000);
+                }
+                if (shakeTimer > 0) {
+                    camera.position.x = cameraBasePos.x + (Math.random() - 0.5) * shakePower;
+                    camera.position.y = cameraBasePos.y + (Math.random() - 0.5) * shakePower;
+                    rotationVelocity += driftVelocity; shakeTimer--;
+                } else { camera.position.copy(cameraBasePos); driftVelocity = 0; }
+                if (keys.left) rotationVelocity += 0.004; if (keys.right) rotationVelocity -= 0.004;
+                rotationVelocity *= 0.94; worldGroup.rotation.z += rotationVelocity;
+                texture.offset.y -= speed * 0.02;
+                bullets.children.forEach((b) => {
+                    b.position.z -= (speed * 1.25); 
+                    if (b.position.z < -1000) { bullets.remove(b); return; }
+                    obstacles.children.forEach((obj) => {
+                        if (obj.userData.type === 'enemy') {
+                            const distZ = Math.abs(b.position.z - obj.position.z);
+                            let diffAngle = Math.abs(b.userData.angle - obj.userData.angle) % (Math.PI * 2);
+                            if (diffAngle > Math.PI) diffAngle = Math.PI * 2 - diffAngle;
+                            if (distZ < 15 && diffAngle < 0.25) { obstacles.remove(obj); bullets.remove(b); }
+                        }
+                    });
+                });
+                obstacles.children.forEach((obj) => {
+                    obj.position.z += speed;
+                    if (obj.position.z > -1 && obj.position.z < 1) {
+                        const currentAngle = (obj.userData.angle + worldGroup.rotation.z) % (Math.PI * 2);
+                        const normAngle = Math.atan2(Math.sin(currentAngle), Math.cos(currentAngle));
+                        if (normAngle < -1.45 && normAngle > -1.70) {
+                            if (obj.userData.type === 'mine') {
+                                shakePower = 0.25; shakeTimer = 180; driftVelocity = (Math.random()-0.5)*0.005; obstacles.remove(obj);
+                            } else if (obj.userData.type === 'slow') {
+                                speed = 1.0; obstacles.remove(obj);
+                            } else if (obj.userData.type === 'ammo') {
+                                ammo = Math.min(6, ammo + 3); obstacles.remove(obj);
+                            } else {
+                                isDead = true; sfxCrash();
+                                const stored = JSON.parse(localStorage.getItem('tunnelz_pb_data') || '{"score":0, "avg":0}');
+                                if (score > stored.score) localStorage.setItem('tunnelz_pb_data', JSON.stringify({score: Math.floor(score), avg: (totalSpeedSum / frameCount).toFixed(2)}));
+                                setTimeout(() => location.reload(), 600);
+                            }
+                            updateUI();
+                        }
+                    }
+                    if (obj.position.z > 20) { obstacles.remove(obj); score += 10; speed += 0.005; updateUI(); }
+                });
+                renderer.render(scene, camera);
+            }
+            updateUI(); animate();
+            window.onresize = () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); };
+        }
+    </script>
+</body>
+</html>
